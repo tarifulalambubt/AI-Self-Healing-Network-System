@@ -5,7 +5,6 @@ How to run:
 
 Step 1:
 python -m venv venv
-# On Windows:
 venv\Scripts\activate
 pip install -r requirements.txt
 
