@@ -4,8 +4,11 @@ An AI-driven network monitoring and automated recovery system.
 How to run: 
 
 Step 1:
+
 python -m venv venv
+
 venv\Scripts\activate
+
 pip install -r requirements.txt
 
 Step 2:
