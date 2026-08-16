@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Self-Healing Network Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1e1e2f; color: white; text-align: center; margin: 0; padding: 20px; }
+        h1 { color: #00d2ff; margin-bottom: 5px;}
+        .subtitle { color: #888; margin-bottom: 20px;}
+        .dashboard { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-top: 20px; }
+        .card { background: #2a2a40; padding: 20px; border-radius: 10px; width: 150px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+        .card h3 { margin: 0; font-size: 14px; color: #888; text-transform: uppercase; }
+        .card p { font-size: 24px; font-weight: bold; margin: 10px 0 0 0; }
+        
+        .status-box { margin-top: 20px; padding: 15px; border-radius: 10px; font-size: 24px; font-weight: bold; transition: 0.3s; width: 80%; max-width: 800px; margin: auto;}
+        .normal { background-color: #27ae60; color: white; }
+        .warning { background-color: #f39c12; color: white; }
+        .danger { background-color: #e74c3c; color: white; }
+        
+        .terminal { background-color: #000; color: #0f0; padding: 15px; margin-top: 20px; border-radius: 5px; font-family: 'Courier New', Courier, monospace; text-align: left; width: 80%; max-width: 800px; display: inline-block; box-shadow: 0 4px 8px rgba(0,255,0,0.2); border: 1px solid #0f0;}
+        
+        .chart-container { background: #2a2a40; padding: 20px; border-radius: 10px; width: 80%; max-width: 800px; margin: 30px auto; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+        
+        /* নতুন টেবিলের ডিজাইন */
+        .table-container { background: #2a2a40; padding: 20px; border-radius: 10px; width: 80%; max-width: 800px; margin: 30px auto; box-shadow: 0 4px 8px rgba(0,0,0,0.2); text-align: left;}
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; border-bottom: 1px solid #444; text-align: left; font-size: 14px;}
+        th { color: #00d2ff; text-transform: uppercase; font-size: 12px;}
+        tr:hover { background-color: #3a3a50; }
+    </style>
+</head>
+<body>
+
+    <h1>🌐 AI-Based Self-Healing Network</h1>
+    <div class="subtitle">Live Telemetry & Auto-Recovery Engine</div>
+
+    <div id="statusBox" class="status-box normal">
+        Network Status: <span id="networkStatus">Waiting for data...</span>
+    </div>
+
+    <div class="terminal">
+        > Auto-Recovery Engine: <span id="recoveryAction">Standing by...</span>
+    </div>
+
+    <div class="dashboard">
+        <div class="card"><h3>Latency</h3><p><span id="latency">0</span> ms</p></div>
+        <div class="card"><h3>Packet Loss</h3><p><span id="packetLoss">0</span> %</p></div>
+        <div class="card"><h3>Bandwidth</h3><p><span id="bandwidth">0</span> Mbps</p></div>
+        <div class="card"><h3>CPU Usage</h3><p><span id="cpuUsage">0</span> %</p></div>
+        <div class="card"><h3>Traffic</h3><p><span id="traffic">0</span></p></div>
+    </div>
+
+    <div class="chart-container">
+        <h3 style="color: #888; text-align: left; margin-top: 0;">Live Network Latency Trend (ms)</h3>
+        <canvas id="latencyChart" height="100"></canvas>
+    </div>
+
+    <div class="table-container">
+        <h3 style="color: #888; margin-top: 0;">Recent Fault & Recovery Logs</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Latency</th>
+                    <th>Fault Detected</th>
+                    <th>Auto-Recovery Action Taken</th>
+                </tr>
+            </thead>
+            <tbody id="logTableBody">
+                </tbody>
+        </table>
+    </div>
+
+    <script>
+        const ctx = document.getElementById('latencyChart').getContext('2d');
+        const latencyChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [], 
+                datasets: [{
+                    label: 'Latency (ms)',
+                    data: [], 
+                    borderColor: '#00d2ff',
+                    backgroundColor: 'rgba(0, 210, 255, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                scales: {
+                    x: { ticks: { color: '#888' }, grid: { color: '#333' } },
+                    y: { ticks: { color: '#888' }, grid: { color: '#333' }, suggestedMin: 0, suggestedMax: 200 }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+
+        function fetchNetworkStatus() {
+            fetch('/api/network_status')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('latency').innerText = data.latency;
+                    document.getElementById('packetLoss').innerText = data.packet_loss;
+                    document.getElementById('bandwidth').innerText = data.bandwidth;
+                    document.getElementById('cpuUsage').innerText = data.cpu_usage;
+                    document.getElementById('traffic').innerText = data.traffic;
+                    
+                    document.getElementById('networkStatus').innerText = data.status;
+                    document.getElementById('recoveryAction').innerText = data.recovery_action;
+
+                    const statusBox = document.getElementById('statusBox');
+                    const recoveryText = document.getElementById('recoveryAction');
+                    statusBox.className = 'status-box';
+                    
+                    if (data.status_code === 0) {
+                        statusBox.classList.add('normal');
+                        recoveryText.style.color = '#0f0';
+                        latencyChart.data.datasets[0].borderColor = '#00d2ff'; 
+                    } else {
+                        statusBox.classList.add('danger');
+                        recoveryText.style.color = '#f00';
+                        latencyChart.data.datasets[0].borderColor = '#ff4757'; 
+                    }
+
+                    // Update Chart
+                    latencyChart.data.labels.push(data.time);
+                    latencyChart.data.datasets[0].data.push(data.latency);
+                    if (latencyChart.data.labels.length > 15) {
+                        latencyChart.data.labels.shift();
+                        latencyChart.data.datasets[0].data.shift();
+                    }
+                    latencyChart.update();
+
+                    // --- UPDATE LOG TABLE ---
+                    const logTable = document.getElementById('logTableBody');
+                    logTable.innerHTML = ''; // টেবিল ক্লিয়ার করা
+                    
+                    if(data.recent_logs.length === 0) {
+                        logTable.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#888;">No faults recorded yet. System is stable.</td></tr>';
+                    } else {
+                        data.recent_logs.forEach(log => {
+                            // log = [Timestamp, Latency, Traffic, Status, Action]
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td style="color:#aaa;">${log[0]}</td>
+                                <td style="color:#f39c12;">${log[1]} ms</td>
+                                <td style="color:#ff4757; font-weight:bold;">${log[3]}</td>
+                                <td style="color:#27ae60;">${log[4]}</td>
+                            `;
+                            logTable.appendChild(tr);
+                        });
+                    }
+                })
+                .catch(error => console.error('Error fetching data:', error));
+        }
+
+        setInterval(fetchNetworkStatus, 3000); 
+        fetchNetworkStatus();
+    </script>
+
+</body>
+</html>
